@@ -1,0 +1,13 @@
+#!/bin/bash
+
+chmod 755 /etc/init.d/x3dispinit
+
+update-rc.d x3dispinit defaults
+
+systemctl enable x3dispinit.service
+
+# systemctl start x3dispinit.service
+
+echo "Maybe you need to reboot your board"
+exit 0
+
