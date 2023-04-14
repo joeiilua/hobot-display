@@ -21,7 +21,7 @@ hdmi="video=hobot:hdmi"
 x3sdb_hdmi1080p="video=hobot:x3sdb-hdmi"
 bt656="video=hobot:bt656"
 video="video=hobot"
-res=`/usr/bin/8618_get_edid | awk -F ',' '{print $1}'`
+res=`/usr/bin/get_hdmi_res | awk -F ',' '{print $1}'`
 echo "Display resolution: $res"
 rbt656=$(echo $f | grep "${bt656}")
 if [[ "$rbt656" != "" ]]
@@ -46,7 +46,6 @@ then
     /usr/bin/x3dispinit "/etc/iar/iar_x3sdb_hdmi_${res}p.json" &
     echo start > /sys/devices/virtual/graphics/iar_cdev/iar_test_attr
     echo disable0 > /sys/devices/virtual/graphics/iar_cdev/iar_test_attr
-    #modprobe hobot_hdmi_lt8618
   else
     echo "no hdmi 1080p configuration file, use default config"
   fi
