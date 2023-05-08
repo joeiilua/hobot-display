@@ -13,6 +13,7 @@
 f=$(tr -d '\0' </sys/firmware/devicetree/base/chosen/bootargs)
 ko_root="/lib/modules/4.14.87"
 #echo $f
+cm480p="cm480p"
 lcd="video=hobot:lcd"
 m720p="video=hobot:720p"
 x3sdb_mipi720p="video=hobot:x3sdb-mipi720p"
@@ -143,6 +144,22 @@ then
     echo disable0 > /sys/devices/virtual/graphics/iar_cdev/iar_test_attr
   else
     echo "no mipi 720p configuration file for 720p portraint, use 1080p default config"
+  fi
+fi
+result2=$(echo $f | grep "${cm480p}")
+if [[ "$result2" != "" ]]
+then
+  echo "display panel is MIPI-480P Portrait"
+  if [ -f "/etc/iar/iar_xj3_mipi480p.json" ]
+  then
+    /usr/bin/x3dispinit /etc/iar/iar_xj3_mipi480p.json &
+    echo cm480p > /sys/devices/virtual/graphics/iar_cdev/iar_test_attr
+    echo start > /sys/devices/virtual/graphics/iar_cdev/iar_test_attr
+    echo disable0 > /sys/devices/virtual/graphics/iar_cdev/iar_test_attr
+    modprobe tinker_ft5406
+    modprobe hbx3_bl
+  else
+    echo "no mipi 480p configuration file for 480p portraint, use 1080p default config"
   fi
 fi
 #echo "@@@@@@disp config end@@@@@@@@@@@@"
