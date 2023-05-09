@@ -156,7 +156,7 @@ then
     echo cm480p > /sys/devices/virtual/graphics/iar_cdev/iar_test_attr
     echo start > /sys/devices/virtual/graphics/iar_cdev/iar_test_attr
     echo disable0 > /sys/devices/virtual/graphics/iar_cdev/iar_test_attr
-    modprobe tinker_ft5406
+    modprobe ft5406
     modprobe hbx3_bl
   else
     echo "no mipi 480p configuration file for 480p portraint, use 1080p default config"
