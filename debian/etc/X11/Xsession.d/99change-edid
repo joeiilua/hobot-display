@@ -1,0 +1,13 @@
+# This file is sourced by Xsession(5), not executed.
+if [ -f '/userdata/.edid_raw_data' ]; then
+    last_edid_raw_data=$(cat /userdata/.edid_raw_data)
+    current_edid_raw_data=$(/usr/bin/get_edid_raw_data)
+    if [ "$last_edid_raw_data" != "$current_edid_raw_data" ]; then
+        # !!!!
+        /usr/bin/xrandr -s 0
+        echo $current_edid_raw_data > /userdata/.edid_raw_data
+    fi
+else
+    current_edid_raw_data=$(/usr/bin/get_edid_raw_data)
+    echo $current_edid_raw_data > /userdata/.edid_raw_data
+fi
