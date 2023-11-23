@@ -1,0 +1,11 @@
+[Unit]
+Description=Hobot RDK Display 
+After=sysinit.target
+Wants=sysinit.target
+[Service]
+Type=simple
+ExecStart=/usr/bin/run_hobot_display_service.sh &
+
+[Install]
+WantedBy=multi-user.target
+
