@@ -1,11 +1,11 @@
 #!/bin/bash
 
-chmod 755 /etc/init.d/x3dispinit
+#chmod 755 /etc/init.d/x3dispinit
 
-update-rc.d x3dispinit defaults
+#update-rc.d x3dispinit defaults
 
-systemctl enable x3dispinit.service
-
+#systemctl enable x3dispinit.service
+systemctl enable hobot-display.service
 # systemctl start x3dispinit.service
 exit 0
 
