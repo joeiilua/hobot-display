@@ -212,6 +212,19 @@ function cfg_update {
 
 function auto_edid() {
    modes=$(get_edid_raw_data | edid-decode-linux-tv -X | grep "Modeline" | sed 's/^[ \t]*//g' | sed 's/.*/"&"/')
+   if [ -z $modes ];then
+      #default timing genrate using https://tomverbeure.github.io/video_timings_calculator
+      modes=("	Modeline \"1920x1080_30\" 74.25 1920 2008 2052 2200 1080 1084 1089 1125 +HSync +VSync
+      Modeline \"1920x1080_60\" 148.5 1920 2008 2052 2200 1080 1084 1089 1125 +HSync +VSync
+      Modeline \"1280x720_60\" 74.25 1280 1390 1430 1650 720 725 730 750 +HSync +VSync
+      Modeline \"1280x720_30\" 74.25 1280 3040 3080 3300 720 725 730 750 +HSync +VSync
+      Modeline \"1024x768_60\" 65 1024 1048 1184 1344 768 771 777 806 -HSync -VSync
+      Modeline \"1024x768_30\" 25.932 1024 1032 1064 1104 768 769 777 783 +HSync -VSync
+      Modeline \"800x600_60.32\" 40 800 840 968 1056 600 601 605 628 +HSync +VSync
+      Modeline \"640x480_75\" 31.5 640 656 720 840 480 481 484 500 -HSync -VSync" 
+      
+      )
+   fi
    modes_array=()
    filtered_output=()
 
