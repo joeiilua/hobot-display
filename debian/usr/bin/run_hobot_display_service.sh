@@ -212,7 +212,7 @@ function cfg_update {
 
 function auto_edid() {
    modes=$(get_edid_raw_data | edid-decode-linux-tv -X | grep "Modeline" | sed 's/^[ \t]*//g' | sed 's/.*/"&"/')
-   if [ -z $modes ];then
+   if [ -z "$modes" ];then
       #default timing genrate using https://tomverbeure.github.io/video_timings_calculator
       modes=("	Modeline \"1920x1080_30\" 74.25 1920 2008 2052 2200 1080 1084 1089 1125 +HSync +VSync
       Modeline \"1920x1080_60\" 148.5 1920 2008 2052 2200 1080 1084 1089 1125 +HSync +VSync
@@ -222,7 +222,7 @@ function auto_edid() {
       Modeline \"1024x768_30\" 25.932 1024 1032 1064 1104 768 769 777 783 +HSync -VSync
       Modeline \"800x600_60.32\" 40 800 840 968 1056 600 601 605 628 +HSync +VSync
       Modeline \"640x480_75\" 31.5 640 656 720 840 480 481 484 500 -HSync -VSync" 
-      
+
       )
    fi
    modes_array=()
@@ -292,7 +292,7 @@ EndSection
 }
 timing_params=""
 function config_parse() {
-   config_file="/boot/config/config.txt"
+   config_file="/boot/config.txt"
    if [ ! -f $config_file ]; then
       echo "File $config_file not exists"
       return
@@ -301,6 +301,28 @@ function config_parse() {
    cfg_section_display_timing
    timing_params="-h $hact -v $vact --hfp $hfp --hs $hs --hbp $hbp --vfp $vfp --vs $vs --vpb $vbp --clk $clk"
 }
+get_value_by_key() {
+  file="$1"
+  key="$2"
+
+
+  if [ ! -f "$file" ]; then
+    echo ""
+    return 1
+  fi
+
+
+  value=$(grep "^$key=" "$file" | awk -F '=' '{print $2}')
+
+
+  if [ -n "$value" ]; then
+    echo "$value"
+  else
+    echo ""
+    return 1
+  fi
+}
+
 
 params="hobot_display_service"
 server_mode=1
@@ -334,6 +356,8 @@ function cmd_line_parse() {
    echo $params
 }
 display_manager=$(basename $(cat /etc/X11/default-display-manager))
+config_file="/boot/config.txt"
+
 if [ $? -eq 0 ] && [ -n "$display_manager" ]; then
    auto_edid
    echo desktop > /sys/devices/virtual/graphics/iar_cdev/iar_test_attr
@@ -341,10 +365,31 @@ if [ $? -eq 0 ] && [ -n "$display_manager" ]; then
 else
    echo "Server mode!"
    server_mode=1
+
+
 fi
 cmd_line_parse
-$($params)
+$($params) &
+sleep 2
+if [ $server_mode == 1 ]; then
+   fb_width=$(get_value_by_key $config_file "fb_console_width")
+   fb_height=$(get_value_by_key $config_file "fb_console_height")
+   echo $fb_width
+   if [ -n "$fb_width" ] && [ -n "$fb_height" ]; then
+   # find the first match
+   matching_mode=$(awk -v width="$fb_width" -v height="$fb_height" '$0 ~ width "x" height {print $1; exit}' /sys/class/graphics/fb0/modes)
 
+   if [ -n "$matching_mode" ]; then
+      # write
+      echo "$matching_mode" > /sys/class/graphics/fb0/mode
+      echo "Success write $matching_mode into /sys/class/graphics/fb0/mode"
+   else
+      echo "Not found"
+   fi
+   else
+      echo "fb_width and/or fb_height is null, pls check /boot/config.txt"
+   fi
+fi
 # config_parse
 
 # auto_edid
