@@ -1,11 +1,5 @@
 #!/bin/bash
-echo "Start to uninstall hobot config in etc"
 
-#update-rc.d x3dispinit remove
-
-#systemctl disable x3dispinit.service
 systemctl disable hobot-display.service
 
-echo "Maybe you need to reboot your board"
 exit 0
-
