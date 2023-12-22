@@ -353,7 +353,6 @@ function cmd_line_parse() {
    fi
    server_env="-s $server_mode"
    params="$params -a 1 -m $display_mode $timing_params $server_env"
-   echo $params
 }
 display_manager=$(basename $(cat /etc/X11/default-display-manager))
 config_file="/boot/config.txt"
@@ -369,27 +368,18 @@ else
 
 fi
 cmd_line_parse
-$($params) &
-sleep 2
 if [ $server_mode == 1 ]; then
    fb_width=$(get_value_by_key $config_file "fb_console_width")
    fb_height=$(get_value_by_key $config_file "fb_console_height")
-   echo $fb_width
-   if [ -n "$fb_width" ] && [ -n "$fb_height" ]; then
-   # find the first match
-   matching_mode=$(awk -v width="$fb_width" -v height="$fb_height" '$0 ~ width "x" height {print $1; exit}' /sys/class/graphics/fb0/modes)
-
-   if [ -n "$matching_mode" ]; then
-      # write
-      echo "$matching_mode" > /sys/class/graphics/fb0/mode
-      echo "Success write $matching_mode into /sys/class/graphics/fb0/mode"
+   fb_refresh_rate=$(get_value_by_key $config_file "fb_console_refresh_rate")
+   if [ -z "$fb_width" ] || [ -z "$fb_height" ] || [ -z "$fb_refresh_rate" ];then
+      params="$params"
    else
-      echo "Not found"
-   fi
-   else
-      echo "fb_width and/or fb_height is null, pls check /boot/config.txt"
+      params="$params -a 1 -m $display_mode $timing_params $server_env --fb_width $fb_width --fb_height $fb_height -r $fb_refresh_rate"
    fi
 fi
+echo $params
+$params
 # config_parse
 
 # auto_edid
