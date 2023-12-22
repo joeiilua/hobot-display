@@ -2,3 +2,6 @@
 *.out
 *.exe
 get_hdmi_res
+liblt8618.so
+get_edid_raw_data
+display

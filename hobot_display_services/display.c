@@ -33,7 +33,17 @@ int log_level = 0;
             printf("LOG: " fmt "\n", ##__VA_ARGS__); \
         }                                            \
     } while (0)
-
+void findAndWriteMode(const char *modesPath, const char *modePath, int width, int height, int rate);
+#define MODES_FILE "/sys/class/graphics/fb0/modes"
+#define MODE_FILE "/sys/class/graphics/fb0/mode"
+char modeline[128] = {0};
+struct DisplayMode
+{
+    char type;
+    int width;
+    int height;
+    int rate;
+};
 void custom_signal_handler(int signo)
 {
     int ret = 0;
@@ -66,6 +76,9 @@ struct arguments
     int vs;
     int clk_mhz;
     int server;
+    int fb_width;
+    int fb_height;
+    int refresh_rate;
 };
 
 static char doc[] = "Userspace display service -- An service of display init";
@@ -83,6 +96,9 @@ static struct argp_option options[] = {
     {"clk", 'c', "MHZ", 0, "Pixel Mhz"},
     {"server", 's', "VALUE", 0, "Whether it is a server environment"},
     {"log", 'l', "LEVEL", 0, "Log level,set 1 to print more infomation"},
+    {"fb_width", 0x87, "WIDTH", 0, "fb width"},
+    {"fb_height", 0x86, "HEIGHT", 0, "fb height"},
+    {"refresh_rate", 'r', "HZ", 0, "fb fresh rate"},
     {0}};
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
@@ -128,6 +144,15 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         break;
     case 'l':
         log_level = atoi(arg);
+        break;
+    case 0x86:
+        args->fb_height = atoi(arg);
+        break;
+    case 0x87:
+        args->fb_width = atoi(arg);
+        break;
+    case 'r':
+        args->refresh_rate = atoi(arg);
         break;
     default:
     {
@@ -194,7 +219,36 @@ int main(int argc, char **argv)
         devAttr.u32BgColor = 16744328;
         devAttr.enOutputMode = HB_VOT_OUTPUT_BT1120;
         memset(&iar_timing, 0, sizeof(iar_timing));
-        
+        if (args.fb_width != 0 && args.fb_height != 0 && args.refresh_rate != 0)
+        {
+            findAndWriteMode(MODES_FILE, MODE_FILE, args.fb_width, args.fb_height, args.refresh_rate);
+            int fb_fd = open("/dev/fb0", O_RDWR);
+
+            if (fb_fd == -1)
+            {
+                perror("Error opening framebuffer device");
+                exit(EXIT_FAILURE);
+            }
+
+            struct fb_var_screeninfo var;
+
+            if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &var))
+            {
+                perror("Error reading variable information");
+                close(fb_fd);
+                exit(EXIT_FAILURE);
+            }
+            iar_timing.hfp = var.right_margin;
+            iar_timing.hbp = var.left_margin;
+            iar_timing.vfp = var.lower_margin;
+            iar_timing.vbp = var.upper_margin;
+            iar_timing.hs = var.hsync_len;
+            iar_timing.vs = var.vsync_len;
+            iar_timing.clk = 100000000 / var.pixclock;
+            iar_timing.hact = var.xres;
+            iar_timing.vact = var.yres;
+        }
+        else
             memcpy(&iar_timing, &hdmi_timing, sizeof(hdmi_timing_t));
     }
     else
@@ -299,17 +353,64 @@ int main(int argc, char **argv)
     {
         hdmi_timing.auto_detect = 0;
         hdmi_timing.clk *= 10000;
-        ret = lt8618_set_hdmi_timing(&hdmi_timing);
-        if (ret)
+        if (args.fb_width != 0 && args.fb_height != 0 && args.refresh_rate != 0)
         {
-            printf("lt8618_set_hdmi_timing failed!,ret:%d\n", ret);
+            ;
+            ;
+        }
+        else
+        {
+            ret = lt8618_set_hdmi_timing(&hdmi_timing);
+            if (ret)
+            {
+                printf("lt8618_set_hdmi_timing failed!,ret:%d\n", ret);
+            }
         }
     }
     if (args.mode == 0)
     {
         lt8618_ioctl_deinit();
     }
-    sleep(10000);
+    if (args.fb_width != 0 && args.fb_height != 0 && args.refresh_rate != 0)
+    {
+        system(modeline);
+    }
+    pause();
 
     return 0;
+}
+
+void findAndWriteMode(const char *modesPath, const char *modePath, int width, int height, int rate)
+{
+    FILE *modesFile = fopen(modesPath, "r");
+    FILE *modeFile = fopen(modePath, "w");
+
+    if (modesFile == NULL || modeFile == NULL)
+    {
+        perror("Error opening files");
+        exit(EXIT_FAILURE);
+    }
+    if (width == 0 || height == 0 || rate == 0)
+        return;
+    char line[256];
+    struct DisplayMode displayMode;
+
+    while (fgets(line, sizeof(line), modesFile) != NULL)
+    {
+
+        if (sscanf(line, "%c:%dx%dp-%d", &displayMode.type, &displayMode.width, &displayMode.height, &displayMode.rate) == 4)
+        {
+
+            if (displayMode.width == width && displayMode.height == height && displayMode.rate == rate)
+            {
+
+                fprintf(modeFile, "%c:%dx%dp-%d\n", displayMode.type, displayMode.width, displayMode.height, displayMode.rate);
+                snprintf(modeline, sizeof(modeline), "echo %c:%dx%dp-%d > /sys/class/graphics/fb0/mode", displayMode.type, displayMode.width, displayMode.height, displayMode.rate);
+                break;
+            }
+        }
+    }
+
+    fclose(modesFile);
+    fclose(modeFile);
 }
