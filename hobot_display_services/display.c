@@ -259,6 +259,21 @@ int main(int argc, char **argv)
          */
         ;
     }
+
+    if(iar_timing.hact > 1080 || iar_timing.vact > 1920)
+    {
+        printf("Warning: Screen resolution exceeding 1920x1080\nFall back to 1920x1080@60Hz\n");
+        iar_timing.clk = 14850;
+        iar_timing.hbp = 148;
+        iar_timing.hfp = 88;
+        iar_timing.hs = 44;
+        iar_timing.vbp = 36;
+        iar_timing.vfp = 4;
+        iar_timing.vs = 5;
+        iar_timing.hact = 1080;
+        iar_timing.vact = 1920;
+    }
+
     devAttr.stSyncInfo.pixel_clk = iar_timing.clk * 10000;
     devAttr.stSyncInfo.hbp = iar_timing.hbp;
     devAttr.stSyncInfo.hfp = iar_timing.hfp;
